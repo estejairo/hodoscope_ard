@@ -317,7 +317,7 @@ char *uart_read_cmd(){
  // Variables for frequency count
 
 int tot_overflow;                									  // Timer3 Total Overflow counter  
-char dataSerial_send[38]="#f:0.000a:00p.00:00.00d:00.00x:00.00*";   
+char dataSerial_send[38]="#f:0.000a:00.00p:00.00d:00.00x:00.00*";   
 double freq;
 char freq_char[6];
 
@@ -347,15 +347,16 @@ float get_par(char *p){
 	char par[20];
 	strcpy(par,p);
 	//strcat(par,":");
-	char *ps = strtok(msg1," ");
-	while(ps)
+    float ps1;
+	char *ps = strtok(msg1," #!");
+	while((strcmp(ps,par)))
 	{
-		if(strcmp(ps,par)) {uart_send(ps);break;}
-		ps = strtok(NULL," ");
+	
+		ps = strtok(NULL," #!");
 	}
-	ps = strtok(NULL," "); //prueba es parte de codigo
-   
-	return atof(ps);
+    ps = strtok(NULL," #!");
+    ps1=atof(ps);
+	return ps1;
 }
 ///////////////
 
@@ -372,10 +373,10 @@ ISR(TIMER3_OVF_vect)
 		//uart_send(msg1); // otra prueba de conexion 
         //uart_flush();		
        // uart1_flush();
-		        
-		//freq = (float)TCNT5; 
+
 		freq = (float)((TCNT5)/gate);                                    
-        //freq = gate;
+       // freq=gate;
+
 		TCNT5=0;														   // Reset the coincidence counter
 		dtostrf(freq, -5, 3, (char*)freq_char);                              //dtostrf() on stdlib.h, to cast a float to char*
       
@@ -389,7 +390,7 @@ ISR(TIMER3_OVF_vect)
 
         uart_send(dataSerial_send);
 
-       // gate=new_gate;  
+        gate=new_gate;  
         uart_flush();
 
 
@@ -427,7 +428,7 @@ int main()
         uart_read_cmd();
        
         char gate_char[6] = "gate:";     //Defining as char arrray to avoid warning :(   
-       // new_gate = get_par(gate_char); 
+        new_gate = get_par(gate_char); 
         _delay_ms(1000);
         uart_flush();
         count++;
