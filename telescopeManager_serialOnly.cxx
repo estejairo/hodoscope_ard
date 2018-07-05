@@ -30,7 +30,7 @@
 #define FRACT_MAX (1000 >> 3)
 
 
-float new_gate = 5;
+float new_gate = 4;
 float new_pa;         // Values read from database query response
 float new_aa;
 float new_dx;
@@ -40,7 +40,7 @@ int go_ahead = -1;           // Flag for avoid the interrupt coincidences
 
 // There exist a limit to the gate value to avoid TIMER5'S reset. TCNT5 cannot overcome 65535 in the gate time.
 
-float gate = 5;  //   initialization value, in seconds ...
+float gate = 3;  //   initialization value, in seconds ...
 
 bool begin_en = true;
 
@@ -156,8 +156,6 @@ int i=0;
 char c;
 while ((c=data[i++])!='\0')
 	uart_transmit(c);
-	//uart_transmit('\r');          
-	//uart_transmit('\n');
 return 1;
 }
 
@@ -286,18 +284,32 @@ char *uart1_read_query(bool type=0)
     return msg1;
 }
 
+/*
+/////////Example/////////////
+char *uart_read()
+{
+int i=0;
+char c;
+while (((c=uart_recieve())!='\r') && (i < 99))
+{
+	msg[i++]=c;
+}
+msg[i]='\0';
+return msg;
+}
+/////////////////////////////
+*/
+
 char *uart_read_cmd(){
     bool store_en = false;
     int i=0;
-    unsigned char p = '\0';
-    unsigned char c = '\0';
-    while   (i<1000) //
+    char p = '\0';
+    char c = '\0';
+    while   (i<998) //
     {
 
-	    //if(UART1_AVAILABLE)               //alternative way
+	    if(UART1_AVAILABLE){}               //alternative way
         c=uart_recieve(); 
-	    if((c=='#')&&(p=='!')){store_en = true;}
-	    p=c;
 
         if(store_en)
 	    {   
@@ -305,7 +317,12 @@ char *uart_read_cmd(){
 		    if ((msg1[i-1]=='#') && (msg1[i]=='!')) break;
             i++;           // #! characteristic flag
 	    }
-        }
+
+	    if((c=='!')&&(p=='#')){store_en = true;}
+
+	    p=c;
+
+    }
     msg1[i+1]='\0';
     return msg1;
 }
@@ -348,15 +365,15 @@ float get_par(char *p){
 	strcpy(par,p);
 	//strcat(par,":");
     float ps1;
-	char *ps = strtok(msg1," #!");
-	while((strcmp(ps,par)))
+	char *ps = strtok(msg1," ");
+	while(ps!=par)
 	{
-	
-		ps = strtok(NULL," #!");
+	    if (strcmp(ps,par)==0)
+            break;
+		ps = strtok(NULL," ");
 	}
-    ps = strtok(NULL," #!");
-    ps1=atof(ps);
-	return ps1;
+    ps = strtok(NULL," ");
+	return atof(ps);
 }
 ///////////////
 
@@ -374,8 +391,8 @@ ISR(TIMER3_OVF_vect)
         //uart_flush();		
        // uart1_flush();
 
-		freq = (float)((TCNT5)/gate);                                    
-       // freq=gate;
+		//freq = (float)((TCNT5)/gate);                                    
+        freq=gate;
 
 		TCNT5=0;														   // Reset the coincidence counter
 		dtostrf(freq, -5, 3, (char*)freq_char);                              //dtostrf() on stdlib.h, to cast a float to char*
@@ -424,13 +441,15 @@ int main()
 	{
 
         uart_send("#g*");
-        _delay_ms(1000);
+        uart_flush();
+        _delay_ms(2000);
         uart_read_cmd();
+
+        
        
         char gate_char[6] = "gate:";     //Defining as char arrray to avoid warning :(   
         new_gate = get_par(gate_char); 
         _delay_ms(1000);
-        uart_flush();
         count++;
         if(count == 7){
             count = 0;
